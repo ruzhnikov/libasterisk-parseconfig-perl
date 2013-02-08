@@ -1,0 +1,1 @@
+libasterisk-parseconfig-perl: syntax check configuration files IP PBX Asterisk
