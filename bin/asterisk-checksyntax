@@ -1,0 +1,148 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+
+use lib '../lib';	# временно
+
+# задаём константы
+my $VERSION = '0.01';
+my $NAME = 'asterisk-checksyntax';
+Internals::SvREADONLY($VERSION  => 1);
+Internals::SvREADONLY($NAME		=> 1);
+
+use Asterisk::ParseConfig::Extensions $VERSION;
+
+if (@ARGV == 0) {
+	print_help();
+	exit(0);
+}
+
+my ($help_flag, $version_flag, $recursive_flag) = undef;
+my $filename = undef;
+my $recursive = undef;
+my $ast_dir = undef;
+
+# читаем входные параметры
+GetOptions(	'help'		=> \$help_flag,
+			'version'	=> \$version_flag,
+			'recursive'	=> \$recursive_flag,
+			'file:s'	=> \$filename,
+			'dir:s'		=> \$ast_dir);
+
+if ($help_flag) {
+	print_help();
+	exit(0);
+} elsif ($version_flag) {
+	print_version();
+	exit(0);
+}
+unless ($filename) {
+	print "Не указано имя файла\n";
+	print_help();
+	exit(0);
+}
+if ($recursive_flag) {
+	$recursive = 'true';
+} else {
+	$recursive = 'false';
+}
+$ast_dir = '/etc/asterisk' unless ($ast_dir);
+
+# начинаем работу
+my $astfile = Asterisk::ParseConfig::Extensions->new({  CONFIG_FILENAME     => $filename,
+                                                        ASTERISK_PATH       => $ast_dir});
+$astfile->parse({  RECURSIVE  => $recursive });
+
+# функция для вывода хелпа
+sub print_help {
+	if ($ENV{LANG} =~ /ru_RU/) {
+		print "$NAME - Проверка синтаксиса конфигурационных файлов IP-PBX Asterisk\n".
+		"Версия: $VERSION\n".
+		"Использование: $NAME -f <имя файла> [-r] [-d <asterisk dir>] [-V] [-h]\n".
+		"Опции:\n".
+		"\t-f --file <имя файла>\n".
+		"\t\tИмя конфиг-файла для проверки\n".
+		"\t-d --dir <asterisk dir>\n".
+		"\t\tДиректория с конфигурационными файлами asterisk [по умолчанию: /etc/asterisk]\n".
+		"\t-r --recursive\n".
+		"\t\tРекурсивный парсинг файлов, включенных с помощью директивы #include\n".
+		"\t-h --help\n".
+		"\t\tПолучить эту справку\n".
+		"\t-v --version\n".
+		"\t\tВывести номер версии и лицензию $NAME\n";
+	} else {
+		print "$NAME - check syntax config files of IP-PBX Asterisk\n".
+		"Version: $VERSION\n".
+		"Usage: $NAME [-f <file name>] [-r] [-V] [-h]\n".
+		"Options:\n".
+		"\t-f --file <file name>\n".
+		"\t\tName of config file for check\n".
+		"\t-d --dir <asterisk dir>\n".
+		"\t\tDirectory with configuration files asterisk [default: /etc/asterisk]\n".
+		"\t-r --recursive\n".
+		"\t\tRecursive parsing of files included with the #include\n".
+		"\t-h --help\n".
+		"\t\tPrint this help\n".
+		"\t-v --version\n".
+		"\t\tPrint version and license $NAME\n";
+	}
+}
+
+# функция для вывода номера версии и лицензии
+sub print_version {
+	if ($ENV{LANG} =~ /ru_RU/) {
+		print "$NAME версия $VERSION\n".
+		"Copyright (C) 2013 by Alexander Ruzhnikov (ruzhnikov85\@gmail.com)\n".
+		"Лицензия Artistic License 2.0 <http://www.perlfoundation.org/artistic_license_2_0>\n".
+		"Это свободное ПО: Вы можете распространять и/или изменять его\n\n";
+	} else {
+		print "$NAME version $VERSION\n".
+		"Copyright (C) 2013 by Alexander Ruzhnikov (ruzhnikov85\@gmail.com)\n".
+		"License Artistic License 2.0 <http://www.perlfoundation.org/artistic_license_2_0>\n".
+		"This is free software.  You can redistribute it and/or modify it\n\n";
+	}
+}
+
+__END__
+
+=head1 NAME
+
+	asterisk-checksyntax - check syntax config files of IP-PBX Asterisk
+
+=head1 SYNOPSIS
+
+	asterisk-checksyntax [OPTIONS] -f FILE
+
+=head1 DESCRIPTION
+
+	...
+
+=head1 OPTIONS
+
+	-f --file <file name>
+		Name of config file for check
+	-d --dir <asterisk dir>
+		Directory with configuration files asterisk [default: /etc/asterisk]
+	-r --recursive
+		Recursive parsing of files included with the #include
+	-h --help
+		Print help
+	-v --version
+		Print version and license asterisk-checksyntax
+
+=head1 AUTHOR
+
+	Alexander Ruzhnikov (ruzhnikov85@gmail.com)
+
+=head1 COPYRIGHT AND LICENSE
+
+	Copyright (C) 2013 by Alexander Ruzhnikov (ruzhnikov85@gmail.com)
+
+	This is free software.  You can redistribute it and/or modify it under the terms of the Artistic License 2.0.
+
+	This program is distributed in the hope that it will be useful, but without any warranty; without even the implied 
+	warranty of merchantability or fitness for a particular purpose.
+
+=cut

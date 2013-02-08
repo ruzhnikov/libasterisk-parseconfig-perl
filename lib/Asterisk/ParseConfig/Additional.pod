@@ -1,0 +1,44 @@
+=head1 NAME
+
+	Asterisk::ParseConfig::Additional - модуль со вспомогательными методами для обработки строк
+
+=head1 SYNOPSIS
+
+	use Asterisk::ParseConfig::Additional qw(parse_line);
+
+	my $line = "exten => s,n,Goto(context,123,1)";
+	my @args = parse_line($line,'all');
+	# $args[0] = 'exten'
+	# $args[1] = '=>'
+	# $args[2] = 's,n,Goto(context,123,1)'
+	
+	my $arg1 = parse_line($line,'arg1','=>');
+	# $arg1 = 'exten'
+
+=head1 DESCRIPTION
+
+	...
+
+=head1 SUBROUTINES
+
+=head2 parse_line()
+
+	$args = parse_line(LINE,NEEDARG[,DELIMITER]);
+
+	парсинг строки LINE, используя разделитель символов DELIMITER (по умолчанию, пробельные символы)
+	возврат аргумента с запрашиваемым номером NEEDARG (all или arg[1-9])
+
+=head1 AUTHOR
+
+	Alexander Ruzhnikov (ruzhnikov85@gmail.com)
+
+=head1 COPYRIGHT AND LICENSE
+
+	Copyright (C) 2013 by Alexander Ruzhnikov (ruzhnikov85@gmail.com)
+
+	This module is free software.  You can redistribute it and/or modify it under the terms of the Artistic License 2.0.
+
+	This program is distributed in the hope that it will be useful, but without any warranty; without even the implied 
+	warranty of merchantability or fitness for a particular purpose.
+
+=cut
