@@ -10,7 +10,7 @@ use strict;
 use warnings;
 use Carp qw/carp/;
 
-our $VERSION = '0.01';
+our $VERSION = 0.01;
 
 # функция для парсинга строки
 sub parse_line {

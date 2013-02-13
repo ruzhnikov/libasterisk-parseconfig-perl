@@ -6,13 +6,11 @@
 
 package Asterisk::ParseConfig;
 
-our $VERSION = '0.01';
+our $VERSION = 0.01;
 
 use strict;
 use warnings;
 use Carp qw/carp croak/;
-
-use lib '../';
 
 # конструктор класса
 sub new {

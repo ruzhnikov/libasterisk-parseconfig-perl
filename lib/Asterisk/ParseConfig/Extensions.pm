@@ -2,14 +2,12 @@
 
 package Asterisk::ParseConfig::Extensions;
 
-our $VERSION = '0.01';
+our $VERSION = 0.01;
 
 use strict;
 use warnings;
 use Carp qw/carp croak/;
 use 5.010;
-
-use lib '../../';	# временно
 
 use parent qw(Asterisk::ParseConfig);
 use Asterisk::ParseConfig::Additional qw/parse_line/;

@@ -7,7 +7,7 @@ WriteMakefile(
     AUTHOR            => 'Alexander Ruzhnikov <ruzhnikov85@gmail.com>',
     LICENSE           => 'Artistic License 2.0',
     VERSION_FROM      => 'lib/Asterisk/ParseConfig.pm',
-    ABSTRACT_FROM     => 'lib/Asterisk/ParseConfig.pm',
+    ABSTRACT          => 'syntax check configuration files IP PBX Asterisk',
     EXE_FILES         => [qw(bin/asterisk-checksyntax)],
     PREREQ_PM         => {},
 );
