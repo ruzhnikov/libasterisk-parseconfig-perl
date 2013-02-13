@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/pbx_ver2/!svn/ver/230/asterisk-parseconfig/trunk/t/asterisk
+END
+more_globals.conf
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/pbx_ver2/!svn/ver/230/asterisk-parseconfig/trunk/t/asterisk/more_globals.conf
+END
+extensions.conf
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/pbx_ver2/!svn/ver/230/asterisk-parseconfig/trunk/t/asterisk/extensions.conf
+END
+more_general.conf
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/pbx_ver2/!svn/ver/230/asterisk-parseconfig/trunk/t/asterisk/more_general.conf
+END
