@@ -1,0 +1,23 @@
+=head1 NAME
+
+    Asterisk::ParseConfig - Базовый класс для модулей парсинга конфиг-файлов астериска
+
+=head2 DESCRIPTION
+
+    В классе реализован конструктор объектов и метод parse(),
+    единый для классов наследующих данный класс
+
+=head1 AUTHOR
+
+    Alexander Ruzhnikov (ruzhnikov85@gmail.com)
+
+=head1 COPYRIGHT AND LICENSE
+
+    Copyright (C) 2013 by Alexander Ruzhnikov (ruzhnikov85@gmail.com)
+
+    This module is free software.  You can redistribute it and/or modify it under the terms of the Artistic License 2.0.
+
+    This program is distributed in the hope that it will be useful, but without any warranty; without even the implied 
+    warranty of merchantability or fitness for a particular purpose.
+
+=cut

@@ -1,0 +1,12 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/001_load_modules.t
+t/002_extensions_isa_can.t
+lib/Asterisk/ParseConfig.pm
+lib/Asterisk/ParseConfig/Additional.pm
+lib/Asterisk/ParseConfig/Additional.pod
+lib/Asterisk/ParseConfig/Extensions.pm
+lib/Asterisk/ParseConfig/Extensions.pod
+bin/asterisk-checksyntax
