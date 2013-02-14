@@ -1,1 +1,1 @@
-libasterisk-parseconfig-perl: syntax check configuration files IP PBX Asterisk
+libasterisk-parseconfig-perl: парсинг и проверка синтаксиса конфигурационных файлов IP-PBX Asterisk
