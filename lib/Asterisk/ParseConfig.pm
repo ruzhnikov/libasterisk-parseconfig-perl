@@ -33,7 +33,7 @@ sub _configure {
     
     # список допустимых опций
     my %config_options = (  CONFIG_FILENAME     => '' ,
-                            ASTERISK_PATH       => '/etc/asterisk');
+                            ASTERISK_PATH       => '/etc/asterisk',);
     
     # читаем полученные данные
     while ( my ($key, $value) = each(%{$config})) {
@@ -62,6 +62,10 @@ sub _configure {
         }
     }
     
+    # все предыдущие конструкции отработали корректно
+    # добавляем счётчик ошибок и варнингов
+    $self->{CONFIG}->{counter}->{errors} = 0;
+    $self->{CONFIG}->{counter}->{warnings} = 0;
     return 1;
 }
 
@@ -73,17 +77,19 @@ sub _try_read_file {
         chdir $ast_dir or die "$!";
     };
     if ($@) {
-        croak "ERROR: can not change to directory $ast_dir: $@";
+        $self->{CONFIG}->{counter}->{errors}++;
+        croak "can not change to directory $ast_dir: $@";
     }
     unless (-e $config_filename) {
-        croak "ERROR: can not find file $config_filename";
+        $self->{CONFIG}->{counter}->{errors}++;
+        croak "can not find file $config_filename";
     }
     return 1;
 }
 
 # метод для первичного парсинга файла, построение "карты" файла
 sub parse {
-        my $self = shift;
+    my $self = shift;
     my $variables = shift;
     
     # список допустимых параметров
@@ -94,6 +100,7 @@ sub parse {
         my $opt = uc($key);
         if (!exists $config_options{$opt}) {
             carp "unknown parameter $key";
+            $self->{CONFIG}->{counter}->{warnings}++;
             next;
         } elsif (!defined $value) {
             next;
@@ -117,8 +124,8 @@ sub parse {
         open($ast_config_file, '<', "$filename") or die "$!";
     };
     if ($@) {
-        carp "ERROR: can not read configuration file $filename: $@";
-        return;
+        $self->{CONFIG}->{counter}->{errors}++;
+        croak "ERROR: can not read configuration file $filename: $@";
     }
     # добавляем дескриптор файла в массив объекта
     push @{$self->{fh}}, $ast_config_file;

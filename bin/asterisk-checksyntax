@@ -37,9 +37,7 @@ if ($help_flag) {
 	exit(0);
 }
 unless ($filename) {
-	print "Не указано имя файла\n";
-	print_help();
-	exit(0);
+	$filename = 'extensions.conf';
 }
 if ($recursive_flag) {
 	$recursive = 'true';
@@ -51,7 +49,14 @@ $ast_dir = '/etc/asterisk' unless ($ast_dir);
 # начинаем работу
 my $astfile = Asterisk::ParseConfig::Extensions->new({  CONFIG_FILENAME     => $filename,
                                                         ASTERISK_PATH       => $ast_dir});
+
 $astfile->parse({  RECURSIVE  => $recursive });
+
+
+# окончание работы
+print "Обработка закончена\n".
+		"Ошибок: " . $astfile->{CONFIG}->{counter}->{errors} . "\n".
+		"Предупреждений: " . $astfile->{CONFIG}->{counter}->{warnings} . "\n";
 
 # функция для вывода хелпа
 sub print_help {
@@ -61,7 +66,7 @@ sub print_help {
 		"Использование: $NAME -f <имя файла> [-r] [-d <asterisk dir>] [-V] [-h]\n".
 		"Опции:\n".
 		"\t-f --file <имя файла>\n".
-		"\t\tИмя конфиг-файла для проверки\n".
+		"\t\tИмя конфиг-файла для проверки [по умолчанию: extensions.conf]\n".
 		"\t-d --dir <asterisk dir>\n".
 		"\t\tДиректория с конфигурационными файлами asterisk [по умолчанию: /etc/asterisk]\n".
 		"\t-r --recursive\n".
@@ -76,7 +81,7 @@ sub print_help {
 		"Usage: $NAME [-f <file name>] [-r] [-V] [-h]\n".
 		"Options:\n".
 		"\t-f --file <file name>\n".
-		"\t\tName of config file for check\n".
+		"\t\tName of config file for check [default: extensions.conf]\n".
 		"\t-d --dir <asterisk dir>\n".
 		"\t\tDirectory with configuration files asterisk [default: /etc/asterisk]\n".
 		"\t-r --recursive\n".

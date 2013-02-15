@@ -25,6 +25,7 @@ sub _first_parse_file {
     # файл уже был распарсен, не будем создавать петли
     if (exists $self->{PARSE}->{FILES}->{$filename}) {
         carp "WARNING: loop detection!";
+        $self->{CONFIG}->{counter}->{warnings}++;
         return 1;
     }
 
@@ -69,7 +70,8 @@ sub _first_parse_file {
         if ($general == 1) {    # находимся в секции general
             unless ($first_arg ~~ @acceptable_general) {
             	carp "WARNING: $filename.$.: element $first_arg is not in the list of allowed general context";
-            	next;
+            	$self->{CONFIG}->{counter}->{warnings}++;
+                next;
             }
             if ($first_arg eq '#include') {     # инклуд файла
             	my $include_file = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
@@ -92,6 +94,7 @@ sub _first_parse_file {
         # обрабатываем строки в обычном контексте
         unless ($first_arg ~~ @acceptable_first_sybmols) {
             carp "WARNING: $filename.$.: element $first_arg is not in the list of allowed";
+            $self->{CONFIG}->{counter}->{warnings}++;
             next;
         }
         if ($first_arg eq '#include') {
@@ -124,8 +127,8 @@ sub _first_parse_file {
                         open ($ast_config_file, '<', "$filename") or die "$!";
                     };
                     if ($@) {
-                        carp "can not read configuration file $filename: $@";
-                        next;
+                        $self->{CONFIG}->{counter}->{errors}++;
+                        croak "ERROR: can not read configuration file $filename: $@";
                     }
                     push @{$self->{fh}}, $ast_config_file;
                     ($self->_first_parse_file($ast_config_file,$filename));
@@ -146,20 +149,22 @@ sub _first_parse_file_args {
         my $include_file = parse_line($line,'arg2');
         unless ($include_file) {
             carp "WARNING: $filename.$linenum: can not get the name of the included file";
+            $self->{CONFIG}->{counter}->{warnings}++;
             return;
         }
         eval {
                 ($self->_try_read_file($include_file));
         };
         if ($@) {
-            warn "ERROR: $filename.$linenum: $@";
-            return;
+            $self->{CONFIG}->{counter}->{errors}++;
+            croak "ERROR: $filename.$linenum: $@";
         }
         return $include_file;
     } elsif ($first_arg eq 'include') {
         my $include_context = parse_line($line,'arg2','=>');
         unless ($include_context) {
             carp "WARNING: $filename.$linenum: can not get the name of the included context";
+            $self->{CONFIG}->{counter}->{warnings}++;
             return;
         }
         return $include_context;
