@@ -2,15 +2,14 @@
 
 package Asterisk::ParseConfig::Additional;
 
-our @EXPORT_OK = qw(parse_line);
-
-use parent qw(Exporter);
+our $VERSION = '0.01';
 
 use strict;
 use warnings;
 use Carp qw/carp/;
 
-our $VERSION = 0.01;
+our @EXPORT_OK = qw(parse_line);
+use parent qw(Exporter);
 
 # функция для парсинга строки
 sub parse_line {

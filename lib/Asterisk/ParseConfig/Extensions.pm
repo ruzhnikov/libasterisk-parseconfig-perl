@@ -2,7 +2,7 @@
 
 package Asterisk::ParseConfig::Extensions;
 
-our $VERSION = 0.01;
+our $VERSION = '0.01';
 
 use strict;
 use warnings;
@@ -61,8 +61,8 @@ sub _first_parse_file {
                     $self->{PARSE}->{CONTEXTS}->{$context}->{exists} = 'true';
             }
             push @{$self->{PARSE}->{FILES}->{$filename}->{contexts}}, $context;
-        	$general = 1 if ($context eq 'general');
-        	$globals = 1 if ($context eq 'globals');
+            $general = 1 if ($context eq 'general');
+            $globals = 1 if ($context eq 'globals');
             $general = 0 if ($context ne 'general');
             $globals = 0 if ($context ne 'globals');
             next;
@@ -110,6 +110,8 @@ sub _first_parse_file {
             }
             push @{$self->{PARSE}->{CONTEXTS}->{$include_context}->{included_contexts}}, $context;
             push @{$self->{PARSE}->{CONTEXTS}->{$context}->{includes_contexts}}, $include_context;
+        } elsif ($first_arg eq 'exten') {
+            $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
         }
     }
     # запускаем рекурсивный поиск при необходимости
@@ -145,7 +147,7 @@ sub _first_parse_file_args {
     my $filename = $$config[0];
     my $linenum = $$config[1];
 
-    if ($first_arg eq '#include') {
+    if ($first_arg eq '#include') { # инклуд файла
         my $include_file = parse_line($line,'arg2');
         unless ($include_file) {
             carp "WARNING: $filename.$linenum: can not get the name of the included file";
@@ -160,7 +162,7 @@ sub _first_parse_file_args {
             croak "ERROR: $filename.$linenum: $@";
         }
         return $include_file;
-    } elsif ($first_arg eq 'include') {
+    } elsif ($first_arg eq 'include') { # инклуд контекста
         my $include_context = parse_line($line,'arg2','=>');
         unless ($include_context) {
             carp "WARNING: $filename.$linenum: can not get the name of the included context";
@@ -168,6 +170,28 @@ sub _first_parse_file_args {
             return;
         }
         return $include_context;
+    } elsif ($first_arg eq 'exten') {   # строка диалплана с exten
+
+        # проверяем на наличие пробелов вокруг =>
+        if ($line !~ m/^exten\s+\=\>\s+.*/) {
+            carp "WARNING: $filename.$linenum: no space next to the symbol =>";
+            $self->{CONFIG}->{counter}->{warnings}++;
+        }
+
+        # проверяем на наличие пробела перед exten
+        if ($line =~ m/^\s+exten.*/) {
+            carp "WARNING: $filename.$linenum: found space before construction \"exten\"";
+            $self->{CONFIG}->{counter}->{warnings}++;
+        }
+
+        # получаем экстеншен и приоритет
+        my ($template, priority) = undef;
+        $template = $line;
+        $template =~ s/^\s*exten\s*=>\s*([a-zA-Z_-!.\d]+),.*/$1/;
+        # ...
+
+    } elsif ($first_arg eq 'same') {    # строка диалплана с same
+        # ...
     }
     return;
 }

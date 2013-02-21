@@ -5,7 +5,7 @@ use warnings;
 use Getopt::Long;
 
 # задаём константы
-my $VERSION = 0.01;
+my $VERSION = '0.01';
 my $NAME = 'asterisk-checksyntax';
 Internals::SvREADONLY($VERSION  => 1);
 Internals::SvREADONLY($NAME		=> 1);
