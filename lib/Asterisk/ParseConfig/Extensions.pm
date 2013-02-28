@@ -171,24 +171,37 @@ sub _first_parse_file_args {
         }
         return $include_context;
     } elsif ($first_arg eq 'exten') {   # строка диалплана с exten
-
-        # проверяем на наличие пробелов вокруг =>
-        if ($line !~ m/^exten\s+\=\>\s+.*/) {
-            carp "WARNING: $filename.$linenum: no space next to the symbol =>";
-            $self->{CONFIG}->{counter}->{warnings}++;
-        }
+        my %hash = (
+            template => undef,
+            priority => undef);
 
         # проверяем на наличие пробела перед exten
-        if ($line =~ m/^\s+exten.*/) {
+        if ($line =~ qr/^\s+exten.*/) {
             carp "WARNING: $filename.$linenum: found space before construction \"exten\"";
             $self->{CONFIG}->{counter}->{warnings}++;
         }
 
-        # получаем экстеншен и приоритет
-        my ($template, priority) = undef;
-        $template = $line;
-        $template =~ s/^\s*exten\s*=>\s*([a-zA-Z_-!.\d]+),.*/$1/;
-        # ...
+        # проверяем на наличие => после exten
+        if ($line !~ qr/^exten\s+\=>.+/) {
+            carp "WARNING: $filename.$linenum: no symbol =>";
+            $self->{CONFIG}->{counter}->{warnings}++;
+        }
+
+        # проверяем на наличие пробелов вокруг =>
+        if ($line !~ qr/^exten\s+\=>\s+.*/) {
+            carp "WARNING: $filename.$linenum: no space next to the symbol =>";
+            $self->{CONFIG}->{counter}->{warnings}++;
+        }
+
+        # получаем экстеншен
+        $hash{template} = $line;
+        $hash{template} =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
+
+        # получаем приоритет
+        $hash{priority} = $line;
+        $hash{priority} =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
+
+        return \%hash;
 
     } elsif ($first_arg eq 'same') {    # строка диалплана с same
         # ...
