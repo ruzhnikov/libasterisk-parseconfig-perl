@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use Test::More tests => 7;
 
-use lib './lib';
-
 require_ok('Asterisk::ParseConfig::Extensions');
 
 my $astdir = undef;

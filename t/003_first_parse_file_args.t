@@ -3,9 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More 'no_plan';
-
-use lib './lib';
+use Test::More tests => 4;
 
 require_ok('Asterisk::ParseConfig::Extensions');
 
@@ -28,6 +26,6 @@ my $astfile = Asterisk::ParseConfig::Extensions->new({  CONFIG_FILENAME     => $
 
 ok(!$astfile->_first_parse_file_args('','exten => 123,n,Answer()',['extensions.conf',10]),
                     'was not passed on the first argument');
-my $exten_result = $astfile->_first_parse_file_args('exten','exten => _123.,n,Answer()',['extensions.conf'],10);
+my $exten_result = $astfile->_first_parse_file_args('exten','exten => _123.,n(test),Answer()',['extensions.conf'],10);
 cmp_ok($$exten_result{template}, 'eq', '_123.', 'get extension');
-cmp_ok($$exten_result{priority}, 'eq', 'n', 'get priority');
+cmp_ok($$exten_result{priority}, 'eq', 'n(test)', 'get priority');

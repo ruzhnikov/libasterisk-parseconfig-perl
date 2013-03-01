@@ -30,7 +30,7 @@ sub _first_parse_file {
     }
 
     # допустимые ключевые слова в контекстах
-    my @acceptable_first_sybmols = ('#include', 'include', 'exten', 'same');
+    my @acceptable_first_sybmols = ('#include', 'include', 'exten');
 
     # допустимые ключевые слова в контексте general
     my @acceptable_general = ('#include', 'static', 'writeprotect',
@@ -202,10 +202,8 @@ sub _first_parse_file_args {
         $hash{priority} =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
 
         return \%hash;
-
-    } elsif ($first_arg eq 'same') {    # строка диалплана с same
-        # ...
     }
+
     return;
 }
 
