@@ -1,29 +1,20 @@
 =head1 NAME
 
-	Asterisk::ParseConfig::Extensions - the Asterisk extensions configs parse and find incorrect rows
+	Asterisk::ParseConfig::Extensions - Parsing the file 'extensions.conf'
 
 =head1 SYNOPSIS
 
 	use Asterisk::ParseConfig::Extensions;
 	
 	my $exten = Asterisk::ParseConfig::Extensions->new({ 	CONFIG_FILENAME     => 'extensions.conf',
-								ASTERISK_PATH       => '/etc/asterisk' });
+															ASTERISK_PATH       => '/etc/asterisk' });
 	$exten->parse({  RECURSIVE  => 'true' });
 
 =head1 DESCRIPTION
 
-	Модуль для парсинга файла extensions.conf и его производных.
-	Определяет контексты, инклуды файлов и контекстов.
-	При необходимости, разбирает все включенные файлы рекурсивно.
-
-	При обнаружении некорректных строк выводит предупреждения.
-	При обнаружении инклудов несуществующих файлов выводит ошибку.
-
 =head1 METHODS
 
 =head2 parse()
-
-	...
 
 =head1 AUTHOR
 

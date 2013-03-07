@@ -6,7 +6,7 @@
 
 package Asterisk::ParseConfig;
 
-our $VERSION = '0.01';
+our $VERSION = '0.011';
 
 use strict;
 use warnings;
@@ -18,7 +18,7 @@ sub new {
     my $self = bless {}, $class;
 
     # пытаемся открыть папку с конфигами и прочесть файл, если нет, возвращаем undef
-    if($self->_configure($values) && $self->_try_read_file($self->{CONFIG}->{CONFIG_FILENAME})) {
+    if($self->_configure($values) && $self->_first_try_read_file($self->{CONFIG}->{CONFIG_FILENAME})) {
         return $self;
     }
     return;
@@ -62,26 +62,29 @@ sub _configure {
         }
     }
     
-    # все предыдущие конструкции отработали корректно
-    # добавляем счётчик ошибок и варнингов
-    $self->{CONFIG}->{counter}->{errors} = 0;
-    $self->{CONFIG}->{counter}->{warnings} = 0;
     return 1;
 }
 
-# метод для первичного доступа к конфиг-файлу
-sub _try_read_file {
+# метод для проверки первичного доступа к конфиг-файлу
+sub _first_try_read_file {
     my ($self, $config_filename) = @_;
     my $ast_dir = $self->{CONFIG}->{ASTERISK_PATH};
     eval {
         chdir $ast_dir or die "$!";
     };
     if ($@) {
-        $self->{CONFIG}->{counter}->{errors}++;
         croak "can not change to directory $ast_dir: $@";
     }
     unless (-e $config_filename) {
-        $self->{CONFIG}->{counter}->{errors}++;
+        croak "can not find file $config_filename";
+    }
+    return 1;
+}
+
+# метод проверки доступа к конфиг-файлу
+sub _try_read_file {
+    my ($self, $config_filename) = @_;
+    unless (-e $config_filename) {
         croak "can not find file $config_filename";
     }
     return 1;
@@ -100,7 +103,6 @@ sub parse {
         my $opt = uc($key);
         if (!exists $config_options{$opt}) {
             carp "unknown parameter $key";
-            $self->{CONFIG}->{counter}->{warnings}++;
             next;
         } elsif (!defined $value) {
             next;
@@ -124,11 +126,15 @@ sub parse {
         open($ast_config_file, '<', "$filename") or die "$!";
     };
     if ($@) {
-        $self->{CONFIG}->{counter}->{errors}++;
         croak "ERROR: can not read configuration file $filename: $@";
     }
     # добавляем дескриптор файла в массив объекта
     push @{$self->{fh}}, $ast_config_file;
+
+    # добавляем переменные для хранения предупреждений, ошибок и уведомлений
+    # $self->{PARSE}->{errors}->{'count'} = 0;
+    @{$self->{PARSE}->{warnings}} = undef;
+    # $self->{PARSE}->{notices}->{'count'} = 0;
 
     # вызываем метод для первичного парсинга файла
     if ($self->_first_parse_file($ast_config_file,$filename)) {
@@ -143,12 +149,15 @@ __END__
 
 =head1 NAME
 
-    Asterisk::ParseConfig - Базовый класс для модулей парсинга конфиг-файлов астериска
+    Asterisk::ParseConfig - Base class for classes Asterisk::PareConfig::*
+
+=head2 SYNOPSIS
+    
+    use Asterisk::ParseConfig
 
 =head2 DESCRIPTION
 
-    В классе реализован конструктор объектов и метод parse(),
-    единый для классов наследующих данный класс
+    In the class implemented objects constructor and parse() method
 
 =head1 AUTHOR
 

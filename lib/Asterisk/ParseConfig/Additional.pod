@@ -1,6 +1,6 @@
 =head1 NAME
 
-	Asterisk::ParseConfig::Additional - модуль со вспомогательными методами для обработки строк
+	Asterisk::ParseConfig::Additional - Class with of helper methods for processing strings
 
 =head1 SYNOPSIS
 
@@ -25,8 +25,8 @@
 
 	$args = parse_line(LINE,NEEDARG[,DELIMITER]);
 
-	парсинг строки LINE, используя разделитель символов DELIMITER (по умолчанию, пробельные символы)
-	возврат аргумента с запрашиваемым номером NEEDARG (all или arg[1-9])
+	Parsing a string LINE, using delimiter of characters DELIMITER (by default, space symbols).
+	Returns the argument with the requested number NEEDARG ('all' or 'arg[1-9]')
 
 =head1 AUTHOR
 

@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-# задаём константы
-my $VERSION = '0.01';
+# setting of constants
+my $VERSION = '0.011';
 my $NAME = 'asterisk-checksyntax';
 Internals::SvREADONLY($VERSION  => 1);
 Internals::SvREADONLY($NAME		=> 1);
@@ -22,7 +22,7 @@ my $filename = undef;
 my $recursive = undef;
 my $ast_dir = undef;
 
-# читаем входные параметры
+# read the input data
 GetOptions(	'help'		=> \$help_flag,
 			'version'	=> \$version_flag,
 			'recursive'	=> \$recursive_flag,
@@ -54,11 +54,18 @@ $astfile->parse({  RECURSIVE  => $recursive });
 
 
 # окончание работы
+my $count_warn = @{$astfile->{PARSE}->{warnings}};
 print "Обработка закончена\n".
-		"Ошибок: " . $astfile->{CONFIG}->{counter}->{errors} . "\n".
-		"Предупреждений: " . $astfile->{CONFIG}->{counter}->{warnings} . "\n";
+		"Прудпреждений: " . $count_warn . "\n";
+if ($count_warn > 0) {
+	print "Предупреждения:\n";
+	foreach my $warn (@{$astfile->{PARSE}->{warnings}}) {
+		print "$warn\n";
+	}
+}
 
-# функция для вывода хелпа
+
+# print help
 sub print_help {
 	if ($ENV{LANG} =~ /ru_RU/) {
 		print "$NAME - Проверка синтаксиса конфигурационных файлов IP-PBX Asterisk\n".
@@ -93,7 +100,7 @@ sub print_help {
 	}
 }
 
-# функция для вывода номера версии и лицензии
+# print number of version and license
 sub print_version {
 	if ($ENV{LANG} =~ /ru_RU/) {
 		print "$NAME версия $VERSION\n".

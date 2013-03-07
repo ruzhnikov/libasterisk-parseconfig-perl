@@ -2,7 +2,7 @@
 
 package Asterisk::ParseConfig::Extensions;
 
-our $VERSION = '0.01';
+our $VERSION = '0.011';
 
 use strict;
 use warnings;
@@ -18,26 +18,23 @@ sub new {
 	return $class->SUPER::new($options);
 }
 
-# метод для работы со строками при первичном парсинге
+# primary method for parsing the configuration file
 sub _first_parse_file {
     my ($self, $file, $filename) = @_;
 
     # файл уже был распарсен, не будем создавать петли
     if (exists $self->{PARSE}->{FILES}->{$filename}) {
-        carp "WARNING: loop detection!";
-        $self->{CONFIG}->{counter}->{warnings}++;
+        #carp "WARNING: loop detection!";
+        push @{$self->{PARSE}->{warnings}}, "loop detection for the file $filename!";
         return 1;
     }
 
     # допустимые ключевые слова в контекстах
-    my @acceptable_first_sybmols = ('#include', 'include', 'exten');
+    my @acceptable_first_sybmols = ('#include', 'include');
 
     # допустимые ключевые слова в контексте general
     my @acceptable_general = ('#include', 'static', 'writeprotect',
                                 'autofallthrough', 'clearglobalvars', 'priorityjumping');
-    
-    # хеш для хранения информации о файле
-    my %file_hash = ();
 
     # начинаем читать файл
     my $general = 0;    # переменная для обозначения секции general
@@ -46,7 +43,7 @@ sub _first_parse_file {
     while (my $line = <$file>) {
         chomp($line);
 
-        # пропускаем комментарии и пустые строки
+        # skip comments and blank lines
         next if ($line =~ /^\s*\;/ || $line =~ /^\s*$/);
 
         # читаем строку, получаем первый элемент строки
@@ -68,11 +65,7 @@ sub _first_parse_file {
             next;
         }
         if ($general == 1) {    # находимся в секции general
-            unless ($first_arg ~~ @acceptable_general) {
-            	carp "WARNING: $filename.$.: element $first_arg is not in the list of allowed general context";
-            	$self->{CONFIG}->{counter}->{warnings}++;
-                next;
-            }
+            next unless ($first_arg ~~ @acceptable_general);
             if ($first_arg eq '#include') {     # инклуд файла
             	my $include_file = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
             	next unless ($include_file);
@@ -91,12 +84,14 @@ sub _first_parse_file {
             next;
         }
 
-        # обрабатываем строки в обычном контексте
-        unless ($first_arg ~~ @acceptable_first_sybmols) {
-            carp "WARNING: $filename.$.: element $first_arg is not in the list of allowed";
-            $self->{CONFIG}->{counter}->{warnings}++;
-            next;
+        # если текущий контекст не определён, добавляем информацию в контекст __,
+        # который является общим контекстом для конструкций-сирот
+        unless ($context) {
+            $context = '__';
+            push @{$self->{PARSE}->{FILES}->{$filename}->{contexts}}, $context;
         }
+        # обрабатываем строки в обычном контексте
+        next unless ($first_arg ~~ @acceptable_first_sybmols);
         if ($first_arg eq '#include') {
             my $include_file = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
             next unless ($include_file);
@@ -110,11 +105,9 @@ sub _first_parse_file {
             }
             push @{$self->{PARSE}->{CONTEXTS}->{$include_context}->{included_contexts}}, $context;
             push @{$self->{PARSE}->{CONTEXTS}->{$context}->{includes_contexts}}, $include_context;
-        } elsif ($first_arg eq 'exten') {
-            $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
         }
     }
-    # запускаем рекурсивный поиск при необходимости
+    # start a recursive search if necessary
     if ($self->{PARSE}->{CONFIG}->{RECURSIVE} eq 'true') {
         if (exists $self->{PARSE}->{FILES}->{$filename}->{includes_files}) {
             my @includes_files = @{$self->{PARSE}->{FILES}->{$filename}->{includes_files}};
@@ -122,14 +115,16 @@ sub _first_parse_file {
                 foreach my $filename (@includes_files) {
                     my $ast_dir = $self->{CONFIG}->{ASTERISK_PATH};
                     my $ast_config_file = undef;
-                    if (substr($filename,1,1) ne '/') { # относительный путь
-                        $filename = $ast_dir . '/' . $filename;
+                    eval {
+                        $self->_try_read_file($filename);
+                    };
+                    if ($@) {
+                        croak "ERROR: $filename: $@";
                     }
                     eval {
                         open ($ast_config_file, '<', "$filename") or die "$!";
                     };
                     if ($@) {
-                        $self->{CONFIG}->{counter}->{errors}++;
                         croak "ERROR: can not read configuration file $filename: $@";
                     }
                     push @{$self->{fh}}, $ast_config_file;
@@ -147,64 +142,77 @@ sub _first_parse_file_args {
     my $filename = $$config[0];
     my $linenum = $$config[1];
 
+    unless($first_arg) {
+        push @{$self->{PARSE}->{warnings}}, "$filename.$linenum: first arg not found";
+        return;
+    }
+
     if ($first_arg eq '#include') { # инклуд файла
         my $include_file = parse_line($line,'arg2');
         unless ($include_file) {
-            carp "WARNING: $filename.$linenum: can not get the name of the included file";
-            $self->{CONFIG}->{counter}->{warnings}++;
+            push @{$self->{PARSE}->{warnings}}, "$filename.$linenum: can not get the name of the included file";
             return;
-        }
-        eval {
-                ($self->_try_read_file($include_file));
-        };
-        if ($@) {
-            $self->{CONFIG}->{counter}->{errors}++;
-            croak "ERROR: $filename.$linenum: $@";
         }
         return $include_file;
     } elsif ($first_arg eq 'include') { # инклуд контекста
         my $include_context = parse_line($line,'arg2','=>');
         unless ($include_context) {
-            carp "WARNING: $filename.$linenum: can not get the name of the included context";
-            $self->{CONFIG}->{counter}->{warnings}++;
+            push @{$self->{PARSE}->{warnings}}, "$filename.$linenum: can not get the name of the included context";
             return;
         }
         return $include_context;
-    } elsif ($first_arg eq 'exten') {   # строка диалплана с exten
-        my %hash = (
-            template => undef,
-            priority => undef);
-
-        # проверяем на наличие пробела перед exten
-        if ($line =~ qr/^\s+exten.*/) {
-            carp "WARNING: $filename.$linenum: found space before construction \"exten\"";
-            $self->{CONFIG}->{counter}->{warnings}++;
-        }
-
-        # проверяем на наличие => после exten
-        if ($line !~ qr/^exten\s+\=>.+/) {
-            carp "WARNING: $filename.$linenum: no symbol =>";
-            $self->{CONFIG}->{counter}->{warnings}++;
-        }
-
-        # проверяем на наличие пробелов вокруг =>
-        if ($line !~ qr/^exten\s+\=>\s+.*/) {
-            carp "WARNING: $filename.$linenum: no space next to the symbol =>";
-            $self->{CONFIG}->{counter}->{warnings}++;
-        }
-
-        # получаем экстеншен
-        $hash{template} = $line;
-        $hash{template} =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
-
-        # получаем приоритет
-        $hash{priority} = $line;
-        $hash{priority} =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
-
-        return \%hash;
     }
 
     return;
+}
+
+# метод проверки синтаксиса в контекстах диалплана
+sub check_syntax {
+    my $self = shift;
+    
+    # допустимые ключевые слова в контекстах
+    my @acceptable_first_sybmols = qw/exten/;
+
+    # допустимые, но игнорируемые ключевые слова в контекстах
+    my @acceptable_first_ignore_sybmols = ('#include', 'include');
+
+    # } elsif ($first_arg eq 'exten') {
+            #$self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
+            # тут надо дописать обработку полученных данных
+            #
+
+    # } elsif ($first_arg eq 'exten') {   # строка диалплана с exten
+    #     my %hash = (
+    #         template => undef,
+    #         priority => undef);
+
+    #     # проверяем на наличие пробела перед exten
+    #     if ($line =~ qr/^\s+exten.*/) {
+    #         carp "WARNING: $filename.$linenum: found space before construction \"exten\"";
+    #         $self->{CONFIG}->{counter}->{warnings}++;
+    #     }
+
+    #     # проверяем на наличие => после exten
+    #     if ($line !~ qr/^exten\s+\=>.+/) {
+    #         carp "WARNING: $filename.$linenum: no symbol =>";
+    #         $self->{CONFIG}->{counter}->{warnings}++;
+    #     }
+
+    #     # проверяем на наличие пробелов вокруг =>
+    #     if ($line !~ qr/^exten\s+\=>\s+.*/) {
+    #         carp "WARNING: $filename.$linenum: no space next to the symbol =>";
+    #         $self->{CONFIG}->{counter}->{warnings}++;
+    #     }
+
+    #     # получаем экстеншен
+    #     $hash{template} = $line;
+    #     $hash{template} =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
+
+    #     # получаем приоритет
+    #     $hash{priority} = $line;
+    #     $hash{priority} =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
+
+    #     return \%hash;
 }
 
 # подчищаем за собой
@@ -215,7 +223,12 @@ sub DESTROY {
     if (exists $self->{fh}) {
         if (@{$self->{fh}} > 0) {
             foreach my $fh (@{$self->{fh}}) {
-                close $fh;
+                eval{
+                    close $fh or die "$!";
+                };
+                if ($@) {
+                    carp "WARNING: $@";
+                }
             }
         }
     }
