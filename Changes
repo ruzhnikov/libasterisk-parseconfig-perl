@@ -1,4 +1,8 @@
 Revision history for Perl extension Asterisk::ParseConfig.
 
+0.011 Fri Mar  8 00:33:25 2013
+    - added tests
+    - fixed bugs
+
 0.01  Wed Feb 13 21:02:03 2013
 	- first release

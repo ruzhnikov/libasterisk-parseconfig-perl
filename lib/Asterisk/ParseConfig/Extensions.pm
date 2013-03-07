@@ -98,6 +98,9 @@ sub _first_parse_file {
             push @{$self->{PARSE}->{FILES}->{$filename}->{includes_files}}, $include_file;
             push @{$self->{PARSE}->{CONTEXTS}->{$context}->{includes_files}}, $include_file;
         } elsif ($first_arg eq 'include') {
+            if ($context eq '__') {
+                push @{$self->{PARSE}->{warnings}}, "$filename.$.: inclusion in the context of a non-existent";
+            }
             my $include_context = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
             next unless ($include_context);
             if (!exists $self->{PARSE}->{CONTEXTS}->{$include_context}->{exists}) {

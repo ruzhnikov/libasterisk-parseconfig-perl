@@ -133,7 +133,7 @@ sub parse {
 
     # добавляем переменные для хранения предупреждений, ошибок и уведомлений
     # $self->{PARSE}->{errors}->{'count'} = 0;
-    @{$self->{PARSE}->{warnings}} = undef;
+    @{$self->{PARSE}->{warnings}} = ();
     # $self->{PARSE}->{notices}->{'count'} = 0;
 
     # вызываем метод для первичного парсинга файла

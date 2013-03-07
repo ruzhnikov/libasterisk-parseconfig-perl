@@ -56,7 +56,8 @@ $astfile->parse({  RECURSIVE  => $recursive });
 # окончание работы
 my $count_warn = @{$astfile->{PARSE}->{warnings}};
 print "Обработка закончена\n".
-		"Прудпреждений: " . $count_warn . "\n";
+		"Предупреждений: " . $count_warn . "\n";
+
 if ($count_warn > 0) {
 	print "Предупреждения:\n";
 	foreach my $warn (@{$astfile->{PARSE}->{warnings}}) {
