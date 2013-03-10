@@ -2,7 +2,7 @@
 
 package Asterisk::ParseConfig::Extensions;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 use strict;
 use warnings;
@@ -24,7 +24,6 @@ sub _first_parse_file {
 
     # файл уже был распарсен, не будем создавать петли
     if (exists $self->{PARSE}->{FILES}->{$filename}) {
-        #carp "WARNING: loop detection!";
         push @{$self->{PARSE}->{warnings}}, "loop detection for the file $filename!";
         return 1;
     }
@@ -50,7 +49,7 @@ sub _first_parse_file {
         my $delimiter = '\s*=>?\s*|\s+';    # разделитель слов в строке
         my $first_arg = parse_line($line,'arg1',$delimiter);
         if ($first_arg =~ m/^\[(.+)\].*$/) {    # имя контекста
-        	$context = $1;
+            $context = $1;
 
             # сохраняем информацию о контексте
             if (!exists $self->{PARSE}->{CONTEXTS}->{$context} ||
@@ -67,8 +66,8 @@ sub _first_parse_file {
         if ($general == 1) {    # находимся в секции general
             next unless ($first_arg ~~ @acceptable_general);
             if ($first_arg eq '#include') {     # инклуд файла
-            	my $include_file = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
-            	next unless ($include_file);
+                my $include_file = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
+                next unless ($include_file);
                 push @{$self->{PARSE}->{FILES}->{$filename}->{includes_files}}, $include_file;
                 push @{$self->{PARSE}->{CONTEXTS}->{$context}->{includes_files}}, $include_file;
             }
@@ -91,7 +90,11 @@ sub _first_parse_file {
             push @{$self->{PARSE}->{FILES}->{$filename}->{contexts}}, $context;
         }
         # обрабатываем строки в обычном контексте
-        next unless ($first_arg ~~ @acceptable_first_sybmols);
+        unless ($first_arg ~~ @acceptable_first_sybmols) {
+            next if ($first_arg =~ qr/^\s*;.*/);
+            push @{$self->{PARSE}->{CONTEXTS}->{$context}->{DATA}}, $line;
+            next;
+        }
         if ($first_arg eq '#include') {
             my $include_file = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
             next unless ($include_file);
@@ -179,43 +182,98 @@ sub check_syntax {
     # допустимые, но игнорируемые ключевые слова в контекстах
     my @acceptable_first_ignore_sybmols = ('#include', 'include');
 
-    # } elsif ($first_arg eq 'exten') {
-            #$self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
-            # тут надо дописать обработку полученных данных
-            #
+    # должен был быть сделен предварительный парсинг
+    unless (exists($self->{PARSE})) {
+        #croak "..."
+    }
 
-    # } elsif ($first_arg eq 'exten') {   # строка диалплана с exten
-    #     my %hash = (
-    #         template => undef,
-    #         priority => undef);
+    my $delimiter = '\s*=>?\s*|\s+';
+    #my @files = @{$self->{PARSE}->{FILES}};
+    my @contexts = @{$self->{PARSE}->{CONTEXTS}};
+    foreach my $context (@contexts) {
+        next unless (exists $self->{PARSE}->{CONTEXTS}->{$context}->{DATA});
+        my @lines = @{$self->{PARSE}->{CONTEXTS}->{$context}->{DATA}};
+        foreach my $linenum (@lines) {
+            my $line = $lines[$linenum];
+            $linenum++;
+            my $first_arg = parse_line($line,'arg1',$delimiter);
+            next if $first_arg ~~ @acceptable_first_ignore_sybmols;
+            next unless ($first_arg ~~ @acceptable_first_sybmols);
 
-    #     # проверяем на наличие пробела перед exten
-    #     if ($line =~ qr/^\s+exten.*/) {
-    #         carp "WARNING: $filename.$linenum: found space before construction \"exten\"";
-    #         $self->{CONFIG}->{counter}->{warnings}++;
-    #     }
+            # начало обработки строк
+            if ($first_arg eq 'exten') {    # строка диалплана, начинающаяся с exten
+                my $hash = $self->_check_syntax_line($first_arg, $line, $linenum, $context);
+                my $exten = $$hash{exten};
+                my $priority = $$hash{priority};
+                my $app = $$hash{app};
+                next unless ($exten);
+            }
+        }
+    }
+    return 1;
+}
 
-    #     # проверяем на наличие => после exten
-    #     if ($line !~ qr/^exten\s+\=>.+/) {
-    #         carp "WARNING: $filename.$linenum: no symbol =>";
-    #         $self->{CONFIG}->{counter}->{warnings}++;
-    #     }
+# субметод проверки синтаксиса
+# предназначен для разбора строки диалплана
+sub _check_syntax_line {
+    my ($self, $first_arg, $line, $linenum, $context) = @_;
+    unless ($first_arg) {
+        push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: first arg not found";
+        return;
+    }
+    if ($first_arg eq 'exten') {
+        my %hash = (
+                exten       => undef,
+                priority    => undef,
+                app         => undef);
 
-    #     # проверяем на наличие пробелов вокруг =>
-    #     if ($line !~ qr/^exten\s+\=>\s+.*/) {
-    #         carp "WARNING: $filename.$linenum: no space next to the symbol =>";
-    #         $self->{CONFIG}->{counter}->{warnings}++;
-    #     }
+        # проверяем на наличие пробела перед exten
+        if ($line =~ qr/^\s+exten.*/) {
+            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: found space before word \"exten\"";
+        }
 
-    #     # получаем экстеншен
-    #     $hash{template} = $line;
-    #     $hash{template} =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
+        # проверяем на наличие => после exten
+        if ($line !~ qr/^exten\s+\=>.+/) {
+            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: no symbol =>";
+        }
 
-    #     # получаем приоритет
-    #     $hash{priority} = $line;
-    #     $hash{priority} =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
+        # проверяем на наличие пробелов вокруг =>
+        if ($line !~ qr/^exten\s+\=>\s+.*/) {
+            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: no space next to the symbol =>";
+        }
 
-    #     return \%hash;
+        # получаем экстеншен
+        my $exten = $line;
+        $exten =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
+        if ($exten eq $line) {
+            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: extension not found";
+            return;
+        } else {
+            $hash{exten} = $exten;
+        }
+
+        # получаем приоритет
+        my $priority = $line;
+        $priority =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
+        if ($priority eq $line) {
+            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: priority not found";
+        } else {
+            $hash{priority} = $priority;
+        }
+
+        # получаем строку приложения
+        my $app = $line;
+        $app =~ s/exten\s=>\s.+?,.+?,(.+)$/$1/;
+        $app =~ s/^(.+?);.*$/$1/;           # убираем комментарии
+        $app =~ s/^(.*)(?<=\S)\s+$/$1/g;    # убираем пробелы из конца строки
+        if ($app eq $line) {
+            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: app not found";
+        } else {
+            $hash{app} = $app;
+        }
+
+        return \%hash;
+    }
 }
 
 # подчищаем за собой

@@ -2,7 +2,6 @@ Changes
 Makefile.PL
 MANIFEST
 README
-Changes
 lib/Asterisk/ParseConfig.pm
 lib/Asterisk/ParseConfig/Additional.pm
 lib/Asterisk/ParseConfig/Additional.pod
