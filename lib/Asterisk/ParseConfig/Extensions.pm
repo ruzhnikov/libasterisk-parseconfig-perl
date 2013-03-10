@@ -24,7 +24,7 @@ sub _first_parse_file {
 
     # файл уже был распарсен, не будем создавать петли
     if (exists $self->{PARSE}->{FILES}->{$filename}) {
-        push @{$self->{PARSE}->{warnings}}, "loop detection for the file $filename!";
+        $self->log('parse','warn',"loop detection for the file $filename!");
         return 1;
     }
 
@@ -102,7 +102,7 @@ sub _first_parse_file {
             push @{$self->{PARSE}->{CONTEXTS}->{$context}->{includes_files}}, $include_file;
         } elsif ($first_arg eq 'include') {
             if ($context eq '__') {
-                push @{$self->{PARSE}->{warnings}}, "$filename.$.: inclusion in the context of a non-existent";
+                $self->log('parse','warn',"$filename.$.: inclusion in the context of a non-existent");
             }
             my $include_context = $self->_first_parse_file_args($first_arg, $line, [$filename, $.]);
             next unless ($include_context);
@@ -149,21 +149,21 @@ sub _first_parse_file_args {
     my $linenum = $$config[1];
 
     unless($first_arg) {
-        push @{$self->{PARSE}->{warnings}}, "$filename.$linenum: first arg not found";
+        $self->log('parse','warn',"$filename.$linenum: first arg not found");
         return;
     }
 
     if ($first_arg eq '#include') { # инклуд файла
         my $include_file = parse_line($line,'arg2');
         unless ($include_file) {
-            push @{$self->{PARSE}->{warnings}}, "$filename.$linenum: can not get the name of the included file";
+            $self->log('parse','warn',"$filename.$linenum: can not get the name of the included file");
             return;
         }
         return $include_file;
     } elsif ($first_arg eq 'include') { # инклуд контекста
         my $include_context = parse_line($line,'arg2','=>');
         unless ($include_context) {
-            push @{$self->{PARSE}->{warnings}}, "$filename.$linenum: can not get the name of the included context";
+            $self->log('parse','warn',"$filename.$linenum: can not get the name of the included context");
             return;
         }
         return $include_context;
@@ -218,7 +218,7 @@ sub check_syntax {
 sub _check_syntax_line {
     my ($self, $first_arg, $line, $linenum, $context) = @_;
     unless ($first_arg) {
-        push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: first arg not found";
+        $self->log('syntax','warn',"$context.$linenum: first arg not found");
         return;
     }
     if ($first_arg eq 'exten') {
@@ -229,24 +229,24 @@ sub _check_syntax_line {
 
         # проверяем на наличие пробела перед exten
         if ($line =~ qr/^\s+exten.*/) {
-            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: found space before word \"exten\"";
+            $self->log('syntax','warn',"$context.$linenum: found space before word \"exten\"");
         }
 
         # проверяем на наличие => после exten
         if ($line !~ qr/^exten\s+\=>.+/) {
-            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: no symbol =>";
+            $self->log('syntax','warn',"$context.$linenum: no symbol =>");
         }
 
         # проверяем на наличие пробелов вокруг =>
         if ($line !~ qr/^exten\s+\=>\s+.*/) {
-            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: no space next to the symbol =>";
+            $self->log('syntax','warn',"$context.$linenum: no space next to the symbol =>");
         }
 
         # получаем экстеншен
         my $exten = $line;
         $exten =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
         if ($exten eq $line) {
-            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: extension not found";
+            $self->log('syntax','warn',"$context.$linenum: extension not found");
             return;
         } else {
             $hash{exten} = $exten;
@@ -256,7 +256,7 @@ sub _check_syntax_line {
         my $priority = $line;
         $priority =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
         if ($priority eq $line) {
-            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: priority not found";
+            $self->log('syntax','warn',"$context.$linenum: priority not found");
         } else {
             $hash{priority} = $priority;
         }
@@ -267,13 +267,13 @@ sub _check_syntax_line {
         $app =~ s/^(.+?);.*$/$1/;           # убираем комментарии
         $app =~ s/^(.*)(?<=\S)\s+$/$1/g;    # убираем пробелы из конца строки
         if ($app eq $line) {
-            push @{$self->{SYNTAX}->{warnings}}, "$context.$linenum: app not found";
+            $self->log('syntax','warn',"$context.$linenum: app not found");
         } else {
             $hash{app} = $app;
         }
-
         return \%hash;
     }
+    return;
 }
 
 # подчищаем за собой

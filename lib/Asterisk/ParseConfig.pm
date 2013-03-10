@@ -143,6 +143,41 @@ sub parse {
     return;
 }
 
+# метод для логгирования ошибок, предупреждений
+sub log {
+    my $self = shift;
+    my $type_action = shift;
+    my $type_message = shift;
+    my $message = shift;
+
+    unless ($type_action) {
+        carp "type of action not found";
+        return;
+    }
+    unless ($type_message) {
+        carp "type of message not found";
+        return;
+    }
+    my @types_actions = qw(PARSE SYNTAX);
+    my @types_messages = qw(warn);
+
+    $type_action = uc($type_action);
+    unless ($type_action ~~ @types_actions) {
+        carp "type of action does not coincide";
+        return;
+    }
+    $type_message = lc($type_message);
+    unless ($type_message ~~ @types_messages) {
+        carp "type of message does not coincide";
+        return;
+    }
+    if ($type_message eq 'warn') {
+        $type_message = 'warnings';
+    }
+    push @{$self->{$type_action}->{$type_message}}, $message;
+    return 1;
+}
+
 1;
 
 __END__
