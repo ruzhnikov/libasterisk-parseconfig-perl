@@ -27,3 +27,9 @@ cmp_ok($astfile->{CONFIG}->{CONFIG_FILENAME}, 'eq', $extfile, 'check the config 
 cmp_ok($astfile->{CONFIG}->{ASTERISK_PATH}, 'eq', $astdir, 'check the asterisk configs dir');
 $astfile->parse();
 cmp_ok($astfile->{PARSE}->{CONFIG}->{RECURSIVE}, 'eq', 'true', 'check parameters of the method parse');
+# $astfile = undef;
+# chdir $cur_dir;
+# $astfile = Asterisk::ParseConfig::Extensions->new({     CONFIG_FILENAME     => $extfile,
+#                                                         ASTERISK_PATH       => $astdir});
+# $astfile->parse({ RECURSIVE => 'false'});
+# cmp_ok($astfile->{PARSE}->{CONFIG}->{RECURSIVE}, 'eq', 'false', 'check parameters of the method parse');

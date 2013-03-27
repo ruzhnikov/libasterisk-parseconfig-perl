@@ -79,6 +79,8 @@ sub _first_parse_file {
                 next unless ($include_file);
                 push @{$self->{PARSE}->{FILES}->{$filename}->{includes_files}}, $include_file;
                 push @{$self->{PARSE}->{CONTEXTS}->{$context}->{includes_files}}, $include_file;
+            } else {
+                push @{$self->{PARSE}->{CONTEXTS}->{$context}->{DATA}}, $line;
             }
             next;
         }
@@ -183,30 +185,53 @@ sub check_syntax {
     my @acceptable_first_ignore_sybmols = ('#include', 'include');
 
     # должен был быть сделен предварительный парсинг
-    unless (exists($self->{PARSE})) {
-        #croak "..."
+    unless (exists($self->{'PARSE'})) {
+        croak "You must call the first method Asterisk::ParseConfig::Extensions::parse()";
     }
 
     my $delimiter = '\s*=>?\s*|\s+';
     #my @files = @{$self->{PARSE}->{FILES}};
-    my @contexts = @{$self->{PARSE}->{CONTEXTS}};
-    foreach my $context (@contexts) {
-        next unless (exists $self->{PARSE}->{CONTEXTS}->{$context}->{DATA});
-        my @lines = @{$self->{PARSE}->{CONTEXTS}->{$context}->{DATA}};
-        foreach my $linenum (@lines) {
-            my $line = $lines[$linenum];
+    # my $contexts = $self->{'PARSE'}->{'CONTEXTS'};
+    foreach my $context (keys $self->{'PARSE'}->{'CONTEXTS'}) {
+        next unless (exists $self->{'PARSE'}->{'CONTEXTS'}->{$context}->{'DATA'});
+        my @lines = @{$self->{'PARSE'}->{'CONTEXTS'}->{$context}->{'DATA'}};
+        my $linenum = 0;
+        foreach my $line (@lines) {
             $linenum++;
             my $first_arg = parse_line($line,'arg1',$delimiter);
-            next if $first_arg ~~ @acceptable_first_ignore_sybmols;
+            next if ($first_arg ~~ @acceptable_first_ignore_sybmols);
             next unless ($first_arg ~~ @acceptable_first_sybmols);
 
             # начало обработки строк
             if ($first_arg eq 'exten') {    # строка диалплана, начинающаяся с exten
                 my $hash = $self->_check_syntax_line($first_arg, $line, $linenum, $context);
-                my $exten = $$hash{exten};
-                my $priority = $$hash{priority};
-                my $app = $$hash{app};
-                next unless ($exten);
+                my $exten = $hash->{'exten'};
+                my $priority = $hash->{'priority'};
+                my $app = $hash->{'app'};
+                unless ($exten) {
+                    $self->log('syntax', 'warn', "$context.$linenum: extension is not defined");
+                    next;
+                }
+                unless ($hash->{'priority'}) {
+                    $self->log('syntax', 'warn', "$context.$linenum: priority is not defined");
+                    next;
+                }
+                unless ($app) {
+                    $self->log('syntax', 'warn', "$context.$linenum: app is not defined");
+                }
+                # if ($priority =~ qr/\d+/) {
+                #     $priority_number = $priority;
+                # } elsif ($priority =~ qr/^n(\(.+\))?$/) {
+                #     if ($priority_number) {
+                #         $priority = $priority_number + 1;
+                #     } else {
+                #         $self->log('syntax','warn',"$context.$linenum: "
+                #     }
+                # }
+                
+                # my $priority = $self->_check_syntax_priority($hash->{'priority'});
+                $self->{'CHECK_SYNTAX'}->{$context}->{'exten'}->{$exten}->{$priority} = $app;
+                #$self->_check_syntax_app($app);
             }
         }
     }
@@ -223,9 +248,9 @@ sub _check_syntax_line {
     }
     if ($first_arg eq 'exten') {
         my %hash = (
-                exten       => undef,
-                priority    => undef,
-                app         => undef);
+                'exten'       => undef,
+                'priority'    => undef,
+                'app'         => undef);
 
         # проверяем на наличие пробела перед exten
         if ($line =~ qr/^\s+exten.*/) {
@@ -246,34 +271,49 @@ sub _check_syntax_line {
         my $exten = $line;
         $exten =~ s/exten\s=>\s(.+?)(?=\,).+/$1/;
         if ($exten eq $line) {
-            $self->log('syntax','warn',"$context.$linenum: extension not found");
-            return;
-        } else {
-            $hash{exten} = $exten;
+            $exten = undef;
         }
+        $hash{'exten'} = $exten;
 
         # получаем приоритет
         my $priority = $line;
         $priority =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
         if ($priority eq $line) {
-            $self->log('syntax','warn',"$context.$linenum: priority not found");
-        } else {
-            $hash{priority} = $priority;
+            $priority = undef;
         }
+        $hash{'priority'} = $priority;
 
         # получаем строку приложения
         my $app = $line;
         $app =~ s/exten\s=>\s.+?,.+?,(.+)$/$1/;
-        $app =~ s/^(.+?);.*$/$1/;           # убираем комментарии
-        $app =~ s/^(.*)(?<=\S)\s+$/$1/g;    # убираем пробелы из конца строки
         if ($app eq $line) {
-            $self->log('syntax','warn',"$context.$linenum: app not found");
+            $app = undef;
+            $hash{'app'} = $app;
         } else {
-            $hash{app} = $app;
+            $app =~ s/^(.+?);.*$/$1/;           # убираем комментарии
+            $app =~ s/^(.*)(?<=\S)\s+$/$1/g;    # убираем пробелы из конца строки
+            $hash{'app'} = $app;
         }
         return \%hash;
     }
     return;
+}
+
+# субметод метода check_syntax()
+# предназначен для проверки номера приоритета строки диалплана
+sub _check_syntax_priority {
+    my $self = shift;
+    return 1;
+}
+
+# субметод метода check_syntax()
+# предназначен для проверки строки приложения(Application)
+sub _check_syntax_app {
+    # use Asterisk::ParseConfig::Apps::E;
+    # use Asterisk::ParseConfig::Apps::G;
+
+    my ($self, $app) = @_;
+    return 1;
 }
 
 # подчищаем за собой
