@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
-#######################################################
-## Базовый модуль для модулей Asterisk::ParseConifg::*
-#######################################################
+########################################################
+## Base module for a modules Asterisk::ParseConifg::* ##
+########################################################
 
 package Asterisk::ParseConfig;
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 use strict;
 use warnings;
@@ -18,7 +18,9 @@ sub new {
     my $self = bless {}, $class;
 
     # пытаемся открыть папку с конфигами и прочесть файл, если нет, возвращаем undef
-    if($self->_configure($values) && $self->_first_try_read_file($self->{CONFIG}->{CONFIG_FILENAME})) {
+    if($self->_configure($values) && 
+        $self->_first_try_read_file($self->{CONFIG}->{CONFIG_FILENAME})) {
+
         return $self;
     }
     return;
@@ -143,7 +145,7 @@ sub parse {
     return;
 }
 
-# метод для логгирования ошибок, предупреждений
+# method for logging of warnings and errors
 sub log {
     my $self = shift;
     my $type_action = shift;

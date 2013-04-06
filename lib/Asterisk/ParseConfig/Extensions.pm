@@ -12,11 +12,11 @@ use 5.010;
 use parent qw(Asterisk::ParseConfig);
 use Asterisk::ParseConfig::Additional qw/parse_line/;
 
-sub new {
-	my ($class, $options) = @_;
+# sub new {
+# 	my ($class, $options) = @_;
 
-	return $class->SUPER::new($options);
-}
+# 	return $class->SUPER::new($options);
+# }
 
 # primary method for parsing the configuration file
 sub _first_parse_file {
@@ -185,16 +185,16 @@ sub check_syntax {
     my @acceptable_first_ignore_sybmols = ('#include', 'include');
 
     # должен был быть сделен предварительный парсинг
-    unless (exists($self->{'PARSE'})) {
+    unless (exists($self->{PARSE})) {
         croak "You must call the first method Asterisk::ParseConfig::Extensions::parse()";
     }
 
     my $delimiter = '\s*=>?\s*|\s+';
     #my @files = @{$self->{PARSE}->{FILES}};
-    # my $contexts = $self->{'PARSE'}->{'CONTEXTS'};
-    foreach my $context (keys $self->{'PARSE'}->{'CONTEXTS'}) {
-        next unless (exists $self->{'PARSE'}->{'CONTEXTS'}->{$context}->{'DATA'});
-        my @lines = @{$self->{'PARSE'}->{'CONTEXTS'}->{$context}->{'DATA'}};
+    # my $contexts = $self->{PARSE}->{'CONTEXTS'};
+    foreach my $context (keys $self->{PARSE}->{'CONTEXTS'}) {
+        next unless (exists $self->{PARSE}->{'CONTEXTS'}->{$context}->{'DATA'});
+        my @lines = @{$self->{PARSE}->{'CONTEXTS'}->{$context}->{'DATA'}};
         my $linenum = 0;
         foreach my $line (@lines) {
             $linenum++;
@@ -219,17 +219,22 @@ sub check_syntax {
                 unless ($app) {
                     $self->log('syntax', 'warn', "$context.$linenum: app is not defined");
                 }
-                # if ($priority =~ qr/\d+/) {
-                #     $priority_number = $priority;
-                # } elsif ($priority =~ qr/^n(\(.+\))?$/) {
-                #     if ($priority_number) {
-                #         $priority = $priority_number + 1;
-                #     } else {
-                #         $self->log('syntax','warn',"$context.$linenum: "
-                #     }
-                # }
                 
-                # my $priority = $self->_check_syntax_priority($hash->{'priority'});
+                unless (exists($self->{'CHECK_SYNTAX'}->{$context}->{'exten'}->{$exten}->{priority_number})) {
+                    $self->{'CHECK_SYNTAX'}->{$context}->{'exten'}->{$exten}->{priority_number} = 0;
+                }
+
+                # вызывает метод для проверки синтаксиса приоритета
+                my $h_priority = $self->_check_syntax_priority($hash->{'priority'});
+                unless ($h_priority) {
+                    $self->log('syntax', 'warn', "$context.$linenum: priority is not defined");
+                    next;
+                }
+
+                #######################
+                # тут необходимо реализовать проверку номера приоритета
+                #######################
+
                 $self->{'CHECK_SYNTAX'}->{$context}->{'exten'}->{$exten}->{$priority} = $app;
                 #$self->_check_syntax_app($app);
             }
@@ -302,8 +307,22 @@ sub _check_syntax_line {
 # субметод метода check_syntax()
 # предназначен для проверки номера приоритета строки диалплана
 sub _check_syntax_priority {
-    my $self = shift;
-    return 1;
+    my ($self, $priority) = @_;
+    my %hash = (    priority    => undef,
+                    named       => undef );
+    if ($priority =~ qr/^\d+$/) {
+        $hash{priority} = $priority;
+        return \%hash;
+    } elsif ($priority eq 'n') {
+        $hash{priority} = $priority;
+        return \%hash;
+    } elsif ($priority =~ qr/^n\((.+?)\)$/) {
+        $hash{priority} = 'n';
+        $hash{named} = $1;
+        return \%hash
+    }
+
+    return;
 }
 
 # субметод метода check_syntax()

@@ -4,24 +4,16 @@ use strict;
 use warnings;
 use Test::More 'no_plan';
 
-my $astdir = undef;
-my $dir = undef;
-
-if (opendir($dir, './asterisk')) {
-    $astdir = './asterisk';
-} elsif (opendir($dir, './t/asterisk')) {
-    $astdir = './t/asterisk';
-} else {
-    die "can not open asterisk directory";
-}
-closedir($dir) or die "can not close asterisk directory: $!";
-
-my $extfile = 'extensions.conf';
-
 require_ok('Asterisk::ParseConfig::Extensions');
 
-my $astfile = Asterisk::ParseConfig::Extensions->new({  CONFIG_FILENAME     => $extfile,
-                                                        ASTERISK_PATH       => $astdir});
+eval {
+    require 'check_dir_asterisk.pl';
+};
+if ($@) {
+    require 't/check_dir_asterisk.pl';
+};
+
+my $astfile = constructor();
 
 eval {
     $astfile->check_syntax();
@@ -40,4 +32,6 @@ TODO: {
 
     is($astfile_syntax->{2}, 'GotoIf($[${CALLERID(num)} == 123]?:hang)');
     is($astfile_syntax->{3}, 'Dial(SIP/${EXTEN},,)');
+    is($astfile_syntax->{3}->{'named'}, 'hang');
+    is($astfile_syntax->{3}, 'Hangup()');
 };

@@ -5,7 +5,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 2;
+use Test::More tests => 4;
 
 # Asterisk::ParseConfig::Extensions::_check_syntax_line()
 {
@@ -16,4 +16,13 @@ use Test::More tests => 2;
     my $priority = $string;
     $priority =~ s/exten\s=>\s.+?,(.+?)(?=\,).+/$1/;
     is($priority, 'n');
+    my $app = $string;
+    $app =~ s/exten\s=>\s.+?,.+?,(.+)$/$1/;
+    is($app, 'Dial(SIP/${EXTEN:1},30,)');
+}
+
+# Asterisk::ParseConfig::Extensions::_check_syntax_priority()
+{
+    my $priority = 'n(test)';
+    like($priority, qr/^n(\(.+?\))$/);
 }
